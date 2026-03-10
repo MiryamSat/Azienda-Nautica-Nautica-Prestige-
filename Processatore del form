@@ -1,0 +1,52 @@
+<?php
+session_start();
+
+// Controllo CSRF
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+    die("Token CSRF non valido.");
+}
+
+// 1) DATI DAL FORM
+$nomeSocieta        = $_POST['nome_societa'] ?? '';
+$regioneProvenienza = $_POST['provenienza'] ?? '';
+$citta              = $_POST['city'] ?? '';
+$email              = $_POST['email'] ?? '';
+$telefono           = $_POST['telefono'] ?? '';
+$messaggio          = $_POST['messaggio'] ?? '';
+$privacyAcconsento  = isset($_POST['consenso_privacy']) ? 1 : 0;
+
+// 2) CONNESSIONE AL DATABASE
+$conn = new mysqli("localhost", "root", "", "_aziendanautica");
+
+// Controllo connessione
+if ($conn->connect_error) {
+    die("Connessione fallita: " . $conn->connect_error);
+}
+
+// 3) QUERY DI INSERIMENTO
+$sql = "INSERT INTO richieste_contatti 
+        (nome_societa, regione_provenienza, citta, email, telefono, messaggio, consenso_privacy, data_invio)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NOW())";
+
+$stmt = $conn->prepare($sql);
+
+$stmt->bind_param(
+    "ssssssi",
+    $nomeSocieta,
+    $regioneProvenienza,
+    $citta,
+    $email,
+    $telefono,
+    $messaggio,
+    $privacyAcconsento
+);
+
+if ($stmt->execute()) {
+    echo "<h2>Richiesta inviata correttamente!</h2>";
+} else {
+    echo "Errore: " . $stmt->error;
+}
+
+$stmt->close();
+$conn->close();
+?>
